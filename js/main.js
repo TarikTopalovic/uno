@@ -263,6 +263,9 @@ function makeGuestSession(code, name) {
   }
 
   joinRoom(code, name, {
+    onStatus(msg) {
+      ui.lobbyError(msg);
+    },
     onMessage(msg) {
       if (!msg) return;
       if (msg.t === 'lobby') ui.showGuestLobby(code, msg.names);
@@ -327,6 +330,9 @@ async function hostOnline(name) {
 
   try {
     const { code } = await hostRoom({
+      onStatus(msg) {
+        ui.lobbyError(msg);
+      },
       onJoin(conn, guestName) {
         const started = hostApi?.started() ?? false;
         if (started || guests.size >= 3) {
@@ -386,3 +392,12 @@ ui.init({
 });
 
 ui.showStartScreen();
+
+// Old browsers (pre-2023) miss the CSS this game leans on — warn instead of
+// rendering garbage silently.
+if (
+  !CSS.supports('color', 'color-mix(in oklch, red 50%, black)') ||
+  !CSS.supports('width', 'calc(cos(0deg) * 1px)')
+) {
+  ui.lobbyError('your browser is too old for this game — update it if things look broken');
+}

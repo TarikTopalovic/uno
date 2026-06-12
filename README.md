@@ -19,6 +19,28 @@ the authoritative game engine, guests receive a redacted state so nobody
 can peek at hands through devtools. No accounts, no server, no port
 forwarding.
 
+### "Connecting…" fails / friends can't join
+
+Direct peer-to-peer needs at least one side on a friendly NAT. STUN
+(included) covers most home Wi-Fi, but CGNAT, mobile carriers, and
+corporate networks often block it — the game will tell you when that's
+the case. The fix is a TURN relay, and free ones exist but need a
+(free) account because public no-signup relays all died:
+
+1. Sign up at https://www.expressturn.com (free, 1000 GB/month) and copy
+   your username + password from the dashboard.
+2. Either paste them into `TURN_SERVERS` in `js/net.js`, or test without
+   redeploying by adding to the URL (both players):
+
+   ```
+   ?turn=turn:relay1.expressturn.com:3478,turns:relay1.expressturn.com:443?transport=tcp|USERNAME|PASSWORD
+   ```
+
+   Add `&relay` to force relay-only mode when testing.
+
+Card-game traffic is a few KB/minute, so the free quota is effectively
+unlimited.
+
 ## Rules implemented
 
 - Official 108-card deck, 7-card deal, full starter-flip rules
