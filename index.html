@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UNO // NEON ARCADE</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/cards.css">
+<link rel="stylesheet" href="css/table.css">
+<link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+<div class="felt" aria-hidden="true"></div>
+
+<main class="table">
+  <section class="seat seat--top" data-seat="2">
+    <div class="seat__plate">
+      <span class="seat__name">VEX</span>
+      <span class="seat__count" data-count="2">0</span>
+      <span class="seat__score" data-score="2">0</span>
+    </div>
+    <div class="opp-hand" data-opp="2"></div>
+  </section>
+
+  <section class="seat seat--left" data-seat="1">
+    <div class="seat__plate">
+      <span class="seat__name">NOVA</span>
+      <span class="seat__count" data-count="1">0</span>
+      <span class="seat__score" data-score="1">0</span>
+    </div>
+    <div class="opp-hand" data-opp="1"></div>
+  </section>
+
+  <section class="seat seat--right" data-seat="3">
+    <div class="seat__plate">
+      <span class="seat__name">ECHO</span>
+      <span class="seat__count" data-count="3">0</span>
+      <span class="seat__score" data-score="3">0</span>
+    </div>
+    <div class="opp-hand" data-opp="3"></div>
+  </section>
+
+  <div class="center">
+    <div class="ring" id="ring" aria-hidden="true"><span>&#9656;</span><span>&#9656;</span></div>
+    <button class="pile pile--draw" id="drawPile" type="button" aria-label="Draw pile — click to draw a card">
+      <span class="card card--back" aria-hidden="true"><span class="card__swoosh"></span><span class="card__backlogo">UNO</span></span>
+      <span class="card card--back" aria-hidden="true"><span class="card__swoosh"></span><span class="card__backlogo">UNO</span></span>
+      <span class="card card--back" aria-hidden="true"><span class="card__swoosh"></span><span class="card__backlogo">UNO</span></span>
+      <span class="pile__label">DRAW</span>
+    </button>
+    <div class="pile pile--discard" id="discard" aria-label="Discard pile"></div>
+    <div class="color-dot" id="colorDot" aria-hidden="true"></div>
+  </div>
+
+  <section class="hand-zone seat" data-seat="0">
+    <div class="seat__plate seat__plate--you">
+      <span class="seat__name">YOU</span>
+      <span class="seat__score" data-score="0">0</span>
+    </div>
+    <div class="hand" id="hand"></div>
+  </section>
+</main>
+
+<button id="unoBtn" class="bigbtn bigbtn--uno" type="button">UNO!</button>
+<button id="catchBtn" class="bigbtn bigbtn--catch" type="button" hidden>CATCH!</button>
+
+<div class="drawn-prompt" id="drawnPrompt" hidden>
+  <span class="drawn-prompt__label">Play the drawn card?</span>
+  <button id="playDrawnBtn" type="button">PLAY IT</button>
+  <button id="keepDrawnBtn" type="button">KEEP</button>
+  <span class="drawn-prompt__bar"></span>
+</div>
+
+<div class="picker" id="picker" role="dialog" aria-modal="true" aria-label="Choose a color" hidden>
+  <div class="picker__petals">
+    <button type="button" data-color="red" aria-label="Red"></button>
+    <button type="button" data-color="yellow" aria-label="Yellow"></button>
+    <button type="button" data-color="green" aria-label="Green"></button>
+    <button type="button" data-color="blue" aria-label="Blue"></button>
+  </div>
+  <span class="picker__hint">PICK A COLOR</span>
+</div>
+
+<div id="toasts" aria-live="polite"></div>
+<div id="overlay" class="overlay" hidden></div>
+<div id="fx-layer" aria-hidden="true"></div>
+<div class="fx-grain" aria-hidden="true"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="sym-skip" viewBox="0 0 24 24">
+      <path d="M12 2.5A9.5 9.5 0 1 0 21.5 12 9.51 9.51 0 0 0 12 2.5Zm0 3a6.43 6.43 0 0 1 3.61 1.1l-9.01 9.01A6.5 6.5 0 0 1 12 5.5Zm0 13a6.43 6.43 0 0 1-3.61-1.1l9.01-9.01A6.5 6.5 0 0 1 12 18.5Z"/>
+    </symbol>
+    <symbol id="sym-reverse" viewBox="0 0 24 24">
+      <path d="M15.9 2.9 21 8l-5.1 5.1-1.9-1.9 1.85-1.85H10a2.45 2.45 0 0 0-2.45 2.45V13H4.8v-1.2A5.2 5.2 0 0 1 10 6.6h5.85L14 4.8Z"/>
+      <path d="M8.1 21.1 3 16l5.1-5.1L10 12.8l-1.85 1.85H14a2.45 2.45 0 0 0 2.45-2.45V11h2.75v1.2A5.2 5.2 0 0 1 14 17.4H8.15L10 19.2Z"/>
+    </symbol>
+    <symbol id="sym-draw2" viewBox="0 0 24 24">
+      <rect x="3.5" y="7" width="9.5" height="13.5" rx="1.8" opacity=".55"/>
+      <rect x="10.5" y="3.5" width="9.5" height="13.5" rx="1.8"/>
+    </symbol>
+    <symbol id="sym-draw4" viewBox="0 0 24 24">
+      <rect x="1.5" y="7.5" width="6.6" height="10" rx="1.2" fill="var(--neon-yellow)" transform="rotate(-12 4.8 12.5)"/>
+      <rect x="6.8" y="5.2" width="6.6" height="10" rx="1.2" fill="var(--neon-green)" transform="rotate(-4 10.1 10.2)"/>
+      <rect x="11.8" y="5.4" width="6.6" height="10" rx="1.2" fill="var(--neon-blue)" transform="rotate(5 15.1 10.4)"/>
+      <rect x="16.4" y="7.8" width="6.6" height="10" rx="1.2" fill="var(--neon-red)" transform="rotate(13 19.7 12.8)"/>
+    </symbol>
+  </defs>
+</svg>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

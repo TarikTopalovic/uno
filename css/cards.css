@@ -1,0 +1,211 @@
+/* Card anatomy: everything scales off font-size = card-width / 10. */
+.card {
+  --c: var(--glow);
+  position: relative;
+  font-size: calc(var(--card-w) / 10);
+  width: 10em;
+  height: 14em;
+  border-radius: 0.9em;
+  border: 0.2em solid #fffc;
+  overflow: hidden;
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(
+    130% 170% at 30% 15%,
+    color-mix(in oklch, var(--c) 92%, white),
+    color-mix(in oklch, var(--c) 55%, black)
+  );
+  box-shadow:
+    0 0 10px color-mix(in oklch, var(--c) 70%, transparent),
+    0 6px 14px #0009;
+}
+
+.card[data-color='red'] { --c: var(--neon-red); }
+.card[data-color='yellow'] { --c: var(--neon-yellow); }
+.card[data-color='green'] { --c: var(--neon-green); }
+.card[data-color='blue'] { --c: var(--neon-blue); }
+
+.card[data-color='wild'] {
+  background:
+    radial-gradient(130% 170% at 30% 15%, #1a2233, #05070d 80%);
+}
+
+/* outlined neon-tube ellipse swoosh */
+.card__swoosh {
+  position: absolute;
+  inset: 8% -28%;
+  border: 0.32em solid #fff;
+  border-radius: 50%;
+  rotate: 32deg;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 0.4em #fff8);
+  pointer-events: none;
+}
+
+.card[data-color='wild'] .card__swoosh {
+  border: 0.34em solid transparent;
+  background:
+    conic-gradient(
+        var(--neon-red) 0 25%,
+        var(--neon-yellow) 0 50%,
+        var(--neon-green) 0 75%,
+        var(--neon-blue) 0
+      )
+      border-box;
+  mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 1;
+  filter: drop-shadow(0 0 0.5em #ffffff55);
+}
+
+.card__big {
+  position: relative;
+  z-index: 2;
+  font-family: var(--font-display);
+  font-size: 4.6em;
+  color: #fff;
+  text-shadow:
+    0.04em 0.05em 0 #0007,
+    0 0 0.25em var(--c);
+}
+
+.card__big--sym {
+  font-size: 1em;
+  width: 5.4em;
+  height: 5.4em;
+  display: grid;
+  place-items: center;
+}
+
+.card__big--sym svg {
+  width: 100%;
+  height: 100%;
+  fill: #fff;
+  filter: drop-shadow(0.04em 0.05em 0 #0007) drop-shadow(0 0 0.25em var(--c));
+}
+
+.card__idx {
+  position: absolute;
+  z-index: 2;
+  font-family: var(--font-display);
+  font-size: 1.5em;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0.05em 0.06em 0 #0007;
+  display: grid;
+  place-items: center;
+}
+
+.card__idx svg {
+  width: 1.05em;
+  height: 1.05em;
+  fill: #fff;
+  filter: drop-shadow(0.05em 0.06em 0 #0007);
+}
+
+.card__idx--tl { top: 0.55em; left: 0.65em; }
+.card__idx--br { bottom: 0.55em; right: 0.65em; rotate: 180deg; }
+
+/* tiny color initial for color-blind support */
+.card__cb {
+  position: absolute;
+  z-index: 2;
+  top: 0.7em;
+  right: 0.75em;
+  font-size: 0.95em;
+  font-weight: 700;
+  opacity: 0.6;
+  color: #fff;
+}
+
+/* wild center: four-neon conic ellipse */
+.card__wild {
+  position: relative;
+  z-index: 2;
+  width: 6.2em;
+  height: 4.2em;
+  border-radius: 50%;
+  rotate: -28deg;
+  background: conic-gradient(
+    from 45deg,
+    var(--neon-red) 0 25%,
+    var(--neon-yellow) 0 50%,
+    var(--neon-green) 0 75%,
+    var(--neon-blue) 0
+  );
+  border: 0.22em solid #fff;
+  box-shadow: 0 0 1em #ffffff44, inset 0 0 0.8em #0006;
+}
+
+.mini-wild {
+  display: block;
+  width: 1.3em;
+  height: 0.95em;
+  border-radius: 50%;
+  rotate: -28deg;
+  background: conic-gradient(
+    from 45deg,
+    var(--neon-red) 0 25%,
+    var(--neon-yellow) 0 50%,
+    var(--neon-green) 0 75%,
+    var(--neon-blue) 0
+  );
+  border: 0.08em solid #fff;
+}
+
+/* ------------------------------------------------------------- card back */
+.card--back {
+  background:
+    repeating-conic-gradient(from 0deg, #ffffff0a 0 9deg, transparent 9deg 18deg),
+    radial-gradient(120% 150% at 35% 20%, #131c30, #05070d 85%);
+  border-color: #ffffff90;
+  box-shadow:
+    0 0 8px #00ffe14d,
+    0 6px 14px #0009;
+}
+
+.card--back .card__swoosh {
+  border-color: var(--glow);
+  opacity: 0.7;
+  filter: drop-shadow(0 0 0.4em color-mix(in oklch, var(--glow) 70%, transparent));
+}
+
+.card__backlogo {
+  position: relative;
+  z-index: 2;
+  font-family: var(--font-display);
+  font-size: 2.1em;
+  rotate: -28deg;
+  color: var(--glow);
+  text-shadow: 0 0 0.4em var(--glow);
+}
+
+/* ----------------------------------------------------- interaction states */
+.hand .card {
+  cursor: pointer;
+}
+
+.hand.is-locked .card {
+  pointer-events: none;
+}
+
+.hand.is-turn .card:not(.is-playable) {
+  filter: saturate(0.3) brightness(0.55);
+}
+
+.hand.is-turn .card.is-playable {
+  box-shadow:
+    0 0 14px var(--c),
+    0 0 0 2px #fff8,
+    0 6px 14px #0009;
+}
+
+.card.is-drawn {
+  outline: 2px dashed var(--glow);
+  outline-offset: 3px;
+}
+
+.card.shake {
+  animation: headshake 0.3s ease;
+}

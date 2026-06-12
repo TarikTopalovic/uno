@@ -1,0 +1,156 @@
+/* ------------------------------------------------------------ fx clones */
+.fx-card {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 160;
+  transform-origin: center;
+  will-change: transform;
+  perspective: 900px;
+}
+
+.fx-flip {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.fx-face {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  backface-visibility: hidden;
+}
+
+.fx-face--back {
+  transform: rotateY(180deg);
+}
+
+/* -------------------------------------------------------------- keyframes */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ring-burst {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(-270deg) scale(1.18); }
+  100% { transform: rotate(-540deg) scale(1); }
+}
+
+@keyframes plate-pulse {
+  0%, 100% { box-shadow: 0 0 12px color-mix(in oklch, var(--glow) 35%, transparent); }
+  50% { box-shadow: 0 0 26px color-mix(in oklch, var(--glow) 75%, transparent); }
+}
+
+@keyframes btn-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+@keyframes toast-in {
+  from { transform: translateX(-18px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes panel-in {
+  from { transform: translateY(26px) scale(0.96); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes headshake {
+  0%, 100% { translate: 0 0; }
+  25% { translate: -6px 0; }
+  50% { translate: 5px 0; }
+  75% { translate: -3px 0; }
+}
+
+@keyframes drain {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+@keyframes petal-in {
+  from { scale: 0.2; opacity: 0; }
+  to { scale: 1; opacity: 1; }
+}
+
+@keyframes confetti-fall {
+  to {
+    transform: translateY(118vh) rotate3d(1, 0.6, 0.3, 900deg);
+    opacity: 0.85;
+  }
+}
+
+@keyframes flash-bg {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes flash-text {
+  0% { transform: scale(2.8); opacity: 0; letter-spacing: 0.6em; }
+  22% { opacity: 1; }
+  78% { opacity: 1; }
+  100% { transform: scale(1); opacity: 0; letter-spacing: 0.04em; }
+}
+
+@keyframes win-ring {
+  from { scale: 0.2; opacity: 1; }
+  to { scale: 9; opacity: 0; }
+}
+
+/* ------------------------------------------------------------- fx pieces */
+.confetto {
+  position: absolute;
+  top: -5vh;
+  left: var(--x);
+  width: 10px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--c);
+  box-shadow: 0 0 8px var(--c);
+  opacity: 0.95;
+  animation: confetti-fall var(--t) ease-in var(--d) forwards;
+}
+
+.uno-flash {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle, #ffffff30, transparent 62%);
+  animation: flash-bg 0.95s ease forwards;
+}
+
+.uno-flash span {
+  font-family: var(--font-display);
+  font-size: clamp(64px, 13vw, 160px);
+  color: var(--c, var(--glow));
+  text-shadow:
+    0 0 30px var(--c, var(--glow)),
+    0 0 90px color-mix(in oklch, var(--c, var(--glow)) 60%, transparent);
+  animation: flash-text 0.95s var(--ease-throw) forwards;
+}
+
+.win-ring {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  border: 3px solid var(--glow);
+  border-radius: 50%;
+  translate: -50% -50%;
+  animation: win-ring 0.9s ease-out forwards;
+}
+
+/* --------------------------------------------------------- reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

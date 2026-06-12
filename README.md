@@ -1,0 +1,41 @@
+# UNO // Neon Arcade
+
+A fully playable UNO card game in the browser — you vs three AI opponents
+(Nova, Vex, Echo), official rules, first to 500 points.
+
+**Play it:** https://tariktopalovic.github.io/uno/
+
+Vanilla HTML/CSS/JS. No build step, no dependencies.
+
+## Rules implemented
+
+- Official 108-card deck, 7-card deal, full starter-flip rules
+  (including Wild Draw Four reshuffle-and-reflip)
+- Match by color, number, or symbol; Wild Draw Four only legal with no
+  matching-color card in hand (enforced — illegal cards are dimmed)
+- Draw one if stuck; play the drawn card or keep it
+- UNO call at two cards — forget it and the AIs can catch you (+2 cards);
+  they sometimes forget too, so catch them right back
+- Skip / Reverse / Draw Two / Wilds, draw-pile reshuffling, round scoring
+  (numbers face value, actions 20, wilds 50), match to 500
+
+## Run locally
+
+```sh
+python -m http.server 8420
+# open http://localhost:8420
+```
+
+(Any static server works — ES modules just can't load from `file://`.)
+
+## Tests
+
+The rules engine is a pure, deterministic state machine, fully separated
+from the DOM, and is verified headlessly:
+
+```sh
+node --test test/unit.test.js   # 32 scenario tests, one per rules edge case
+node test/simulate.js 10000     # 10,000 full AI-vs-AI matches, invariants
+                                # checked after every action + illegal-action
+                                # fuzzing + determinism replay
+```

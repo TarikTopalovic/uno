@@ -1,0 +1,10 @@
+{
+  "name": "uno",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/unit.test.js",
+    "sim": "node test/simulate.js 10000",
+    "serve": "python -m http.server 8420"
+  }
+}
