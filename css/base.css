@@ -235,3 +235,96 @@ button {
   transform: translateY(-2px) scale(1.03);
   box-shadow: 0 0 40px var(--glow);
 }
+
+.cta--alt {
+  background: transparent !important;
+  color: var(--glow) !important;
+  border: 2px solid var(--glow);
+  box-shadow: none !important;
+}
+
+.cta--alt:hover {
+  box-shadow: 0 0 24px color-mix(in oklch, var(--glow) 50%, transparent) !important;
+}
+
+/* ----------------------------------------------------------------- lobby */
+.lobby__form {
+  margin-top: 26px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.lobby__form--join {
+  margin-top: 14px;
+}
+
+.lobby__actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.lobby__actions .cta,
+.lobby__form .cta {
+  margin-top: 0;
+}
+
+.lobby__input {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  background: #070a12;
+  border: 1px solid #ffffff2e;
+  border-radius: 10px;
+  padding: 12px 16px;
+  width: 220px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.lobby__input--code {
+  width: 130px;
+  font-family: var(--font-display);
+  letter-spacing: 0.3em;
+}
+
+.lobby__input:focus {
+  outline: none;
+  border-color: var(--glow);
+  box-shadow: 0 0 14px #00ffe133;
+}
+
+.lobby__list {
+  list-style: none;
+  margin: 24px auto 0;
+  min-width: 240px;
+  text-align: left;
+}
+
+.lobby__list li {
+  font-family: var(--font-display);
+  font-size: 14px;
+  padding: 8px 14px;
+  border-bottom: 1px solid #ffffff14;
+}
+
+.lobby__wait {
+  margin-top: 26px;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #9fb3c8;
+  animation: btn-pulse 1.4s ease-in-out infinite;
+}
+
+.lobby__error {
+  margin-top: 16px;
+  min-height: 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--neon-yellow);
+}

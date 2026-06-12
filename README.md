@@ -1,11 +1,23 @@
 # UNO // Neon Arcade
 
-A fully playable UNO card game in the browser — you vs three AI opponents
-(Nova, Vex, Echo), official rules, first to 500 points.
+A fully playable UNO card game in the browser — solo against three AI
+opponents, or **online with friends**. Official rules, first to 500 points.
 
 **Play it:** https://tariktopalovic.github.io/uno/
 
-Vanilla HTML/CSS/JS. No build step, no dependencies.
+Vanilla HTML/CSS/JS. No build step, no server.
+
+## Play with friends
+
+1. One player clicks **HOST ROOM** and shares the 5-letter room code.
+2. Friends open the same URL, enter the code, and hit **JOIN ROOM** (2–4
+   players; empty seats are filled by AI).
+3. Host starts the game. If someone disconnects, an AI takes their seat.
+
+Multiplayer is peer-to-peer (WebRTC via PeerJS) — the host's browser runs
+the authoritative game engine, guests receive a redacted state so nobody
+can peek at hands through devtools. No accounts, no server, no port
+forwarding.
 
 ## Rules implemented
 

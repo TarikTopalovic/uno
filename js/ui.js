@@ -1,5 +1,8 @@
 // Incremental keyed DOM sync + event-to-animation bridge. Never re-renders
 // the whole table; reconciles by card id so in-flight transitions survive.
+// Perspective-aware: engine seat `mySeat` is always rendered at the bottom;
+// display seats are (engineSeat - mySeat) mod 4 -> 0 bottom, 1 left, 2 top,
+// 3 right.
 
 import { card } from './deck.js';
 import { COLORS, TIMING } from './constants.js';
@@ -8,10 +11,24 @@ import * as fx from './animate.js';
 
 let dom = {};
 let handlers = {};
-let toastCount = 0;
+let mySeat = 0;
 
 const COLOR_CSS = Object.fromEntries(COLORS.map((c) => [c, `var(--neon-${c})`]));
 const cap = (s) => s[0].toUpperCase() + s.slice(1);
+
+const dispSeat = (p) => (p - mySeat + 4) % 4;
+
+export function setPerspective(seat, names) {
+  mySeat = seat;
+  for (let p = 0; p < 4; p++) {
+    const d = dispSeat(p);
+    const plate =
+      d === 0
+        ? document.querySelector('.seat__plate--you .seat__name')
+        : document.querySelector(`.seat[data-seat="${d}"] .seat__name`);
+    if (plate) plate.textContent = d === 0 ? 'YOU' : names[p];
+  }
+}
 
 export function cardLabel(id) {
   const c = card(id);
@@ -113,20 +130,21 @@ function scatter(id) {
 
 const rect = (el) => el.getBoundingClientRect();
 
-function oppZone(p) {
-  return document.querySelector(`.opp-hand[data-opp="${p}"]`);
+// display-seat lookups (1 left, 2 top, 3 right)
+function oppZoneD(d) {
+  return document.querySelector(`.opp-hand[data-opp="${d}"]`);
 }
 
-function seatEl(p) {
-  return document.querySelector(`.seat[data-seat="${p}"]`);
+function seatElD(d) {
+  return document.querySelector(`.seat[data-seat="${d}"]`);
 }
 
-function sideRot(p) {
-  return p === 1 ? 90 : p === 3 ? -90 : 0;
+function sideRotD(d) {
+  return d === 1 ? 90 : d === 3 ? -90 : 0;
 }
 
 function playerName(state, p) {
-  return state.players[p].name;
+  return p === mySeat ? 'YOU' : state.players[p].name;
 }
 
 // ------------------------------------------------------------------ toasts
@@ -138,7 +156,6 @@ export function toast(html, colorCss) {
   el.innerHTML = `<span class="dot"></span><span>${html}</span>`;
   dom.toasts.appendChild(el);
   while (dom.toasts.children.length > 3) dom.toasts.firstChild.remove();
-  toastCount++;
   setTimeout(() => el.remove(), 3500);
 }
 
@@ -171,7 +188,7 @@ function ensureDiscardTop(state) {
 // -------------------------------------------------------------------- hand
 
 function syncHand(state) {
-  const ids = state.hands[0];
+  const ids = state.hands[mySeat];
   const existing = new Map([...dom.hand.children].map((el) => [el.dataset.id, el]));
   for (const [id, el] of existing) {
     if (!ids.includes(id)) el.remove();
@@ -186,7 +203,7 @@ function syncHand(state) {
   });
 
   const myTurn =
-    state.currentPlayer === 0 &&
+    state.currentPlayer === mySeat &&
     (state.phase === 'awaiting-play' || state.phase === 'awaiting-play-drawn');
   dom.hand.classList.toggle('is-turn', myTurn);
   dom.hand.classList.toggle('is-locked', !myTurn);
@@ -202,13 +219,14 @@ function syncHand(state) {
     el.classList.toggle('is-playable', playable);
     el.classList.toggle(
       'is-drawn',
-      state.phase === 'awaiting-play-drawn' && el.dataset.id === state.drawnCardId,
+      myTurn && state.phase === 'awaiting-play-drawn' && el.dataset.id === state.drawnCardId,
     );
   }
 }
 
-function syncOppHand(p, count) {
-  const zone = oppZone(p);
+function syncOppHandD(d, count) {
+  const zone = oppZoneD(d);
+  if (!zone) return;
   const want = Math.min(count, 7);
   while (zone.children.length > want) zone.lastChild.remove();
   while (zone.children.length < want) zone.appendChild(backEl());
@@ -217,14 +235,14 @@ function syncOppHand(p, count) {
 // -------------------------------------------------------------------- sync
 
 export function sync(state) {
-  const n = state.players.length;
-  for (let p = 0; p < n; p++) {
-    const scoreEl = document.querySelector(`[data-score="${p}"]`);
+  for (let p = 0; p < state.players.length; p++) {
+    const d = dispSeat(p);
+    const scoreEl = document.querySelector(`[data-score="${d}"]`);
     if (scoreEl) scoreEl.textContent = state.scores[p];
-    if (p > 0) {
-      const countEl = document.querySelector(`[data-count="${p}"]`);
+    if (d > 0) {
+      const countEl = document.querySelector(`[data-count="${d}"]`);
       if (countEl) countEl.textContent = state.hands[p].length;
-      syncOppHand(p, state.hands[p].length);
+      syncOppHandD(d, state.hands[p].length);
     }
   }
 
@@ -234,7 +252,7 @@ export function sync(state) {
       ? state.colorChooser
       : state.currentPlayer;
   document.querySelectorAll('.seat').forEach((el) => {
-    el.classList.toggle('is-active', !over && Number(el.dataset.seat) === actor);
+    el.classList.toggle('is-active', !over && Number(el.dataset.seat) === dispSeat(actor));
   });
 
   syncHand(state);
@@ -242,7 +260,7 @@ export function sync(state) {
 
   dom.drawPile.classList.toggle(
     'is-clickable',
-    state.phase === 'awaiting-play' && state.currentPlayer === 0,
+    state.phase === 'awaiting-play' && state.currentPlayer === mySeat,
   );
 
   dom.colorDot.style.setProperty(
@@ -251,22 +269,22 @@ export function sync(state) {
   );
 
   const armable =
-    state.currentPlayer === 0 &&
-    state.hands[0].length === 2 &&
-    !state.uno.declared[0] &&
+    state.currentPlayer === mySeat &&
+    state.hands[mySeat].length === 2 &&
+    !state.uno.declared[mySeat] &&
     (state.phase === 'awaiting-play' || state.phase === 'awaiting-play-drawn');
   dom.unoBtn.classList.toggle('is-armed', armable);
-  dom.unoBtn.classList.toggle('is-urgent', state.uno.vulnerable === 0);
+  dom.unoBtn.classList.toggle('is-urgent', state.uno.vulnerable === mySeat);
 
-  dom.catchBtn.hidden = !(state.uno.vulnerable !== null && state.uno.vulnerable !== 0);
+  dom.catchBtn.hidden = !(state.uno.vulnerable !== null && state.uno.vulnerable !== mySeat);
 
-  if (!(state.phase === 'awaiting-play-drawn' && state.currentPlayer === 0)) {
+  if (!(state.phase === 'awaiting-play-drawn' && state.currentPlayer === mySeat)) {
     hideDrawnPrompt();
   }
   if (
     !(
       (state.phase === 'awaiting-color' || state.phase === 'awaiting-initial-color') &&
-      state.colorChooser === 0
+      state.colorChooser === mySeat
     )
   ) {
     dom.picker.hidden = true;
@@ -293,13 +311,12 @@ const HANDLERS = {
     hideOverlay();
     dom.discard.innerHTML = '';
     dom.hand.innerHTML = '';
-    for (let p = 1; p < state.players.length; p++) syncOppHand(p, 0);
+    for (let d = 1; d < 4; d++) syncOppHandD(d, 0);
 
     const n = state.players.length;
     const first = (ev.dealer + 1) % n;
     const order = [];
-    for (let r = 0; r < ev.hands[0].length || r < 7; r++) {
-      if (r >= 7) break;
+    for (let r = 0; r < 7; r++) {
       for (let k = 0; k < n; k++) order.push((first + k) % n);
     }
     const fromR = rect(dom.drawPile);
@@ -309,12 +326,12 @@ const HANDLERS = {
         .then(() =>
           fx.fly({
             from: fromR,
-            to: rect(p === 0 ? dom.hand : oppZone(p)),
+            to: rect(p === mySeat ? dom.hand : oppZoneD(dispSeat(p))),
             front: backEl,
             back: backEl,
             flip: 'back',
             ms: 360,
-            toRot: sideRot(p),
+            toRot: sideRotD(dispSeat(p)),
           }),
         ),
     );
@@ -336,7 +353,7 @@ const HANDLERS = {
   async cardPlayed(ev, state) {
     const sc = scatter(ev.cardId);
     const toR = rect(dom.discard);
-    if (ev.player === 0) {
+    if (ev.player === mySeat) {
       const el = dom.hand.querySelector(`[data-id="${CSS.escape(ev.cardId)}"]`);
       const fromR = el ? rect(el) : rect(dom.hand);
       el?.remove();
@@ -348,14 +365,15 @@ const HANDLERS = {
         toRot: sc.r,
       });
     } else {
+      const d = dispSeat(ev.player);
       toastCard(`${playerName(state, ev.player)} plays`, ev.cardId);
       await fx.fly({
-        from: rect(oppZone(ev.player)),
+        from: rect(oppZoneD(d)),
         to: toR,
         front: () => cardEl(ev.cardId),
         back: backEl,
         flip: 'reveal',
-        fromRot: sideRot(ev.player),
+        fromRot: sideRotD(d),
         toRot: sc.r,
       });
     }
@@ -372,7 +390,7 @@ const HANDLERS = {
       toast(`${playerName(state, ev.player)} caught — +2 cards`, 'var(--neon-yellow)');
     }
     for (const id of ev.cardIds) {
-      if (ev.player === 0) {
+      if (ev.player === mySeat) {
         await fx.fly({
           from: rect(dom.drawPile),
           to: rect(dom.hand),
@@ -385,22 +403,23 @@ const HANDLERS = {
           dom.hand.appendChild(cardEl(id, { button: true }));
         }
       } else {
+        const d = dispSeat(ev.player);
         await fx.fly({
           from: rect(dom.drawPile),
-          to: rect(oppZone(ev.player)),
+          to: rect(oppZoneD(d)),
           front: backEl,
           back: backEl,
           flip: 'back',
           ms: 300,
-          toRot: sideRot(ev.player),
+          toRot: sideRotD(d),
         });
-        syncOppHand(ev.player, Math.min(state.hands[ev.player].length, 7));
+        syncOppHandD(d, Math.min(state.hands[ev.player].length, 7));
       }
     }
   },
 
   async drawnPlayable(ev) {
-    if (ev.player === 0) showDrawnPrompt();
+    if (ev.player === mySeat) showDrawnPrompt();
   },
 
   async keptDrawn() {
@@ -408,7 +427,7 @@ const HANDLERS = {
   },
 
   async colorRequired(ev) {
-    if (ev.player === 0) dom.picker.hidden = false;
+    if (ev.player === mySeat) dom.picker.hidden = false;
   },
 
   async colorChosen(ev, state) {
@@ -441,23 +460,23 @@ const HANDLERS = {
   },
 
   async turnPassed(ev, state) {
-    if (ev.player !== 0) toast(`${playerName(state, ev.player)} passes`);
+    if (ev.player !== mySeat) toast(`${playerName(state, ev.player)} passes`);
   },
 
   async unoArmed(ev, state) {
-    if (ev.player !== 0) {
+    if (ev.player !== mySeat) {
       toast(`${playerName(state, ev.player)} calls <b>UNO</b>!`, 'var(--neon-red)');
     }
   },
 
   async unoDeclared(ev, state) {
-    fx.unoFlash('UNO!', ev.player === 0 ? 'var(--glow)' : 'var(--neon-red)');
+    fx.unoFlash('UNO!', ev.player === mySeat ? 'var(--glow)' : 'var(--neon-red)');
     toast(`${playerName(state, ev.player)} — <b>UNO!</b>`, 'var(--neon-red)');
     await fx.sleep(350);
   },
 
   async unoVulnerable(ev, state) {
-    if (ev.player === 0) {
+    if (ev.player === mySeat) {
       toast('One card left — press <b>UNO!</b> before you get caught', 'var(--neon-red)');
     } else {
       toast(
@@ -477,12 +496,12 @@ const HANDLERS = {
   },
 
   async roundOver(ev, state) {
-    const seat = seatEl(ev.winner);
+    const seat = seatElD(dispSeat(ev.winner));
     if (seat) {
       const r = rect(seat);
       fx.winRing(r.left + r.width / 2, r.top + r.height / 2);
     }
-    if (ev.winner === 0) {
+    if (ev.winner === mySeat) {
       fx.confetti(Object.values(COLOR_CSS).concat('var(--glow)'));
     }
     await fx.sleep(800);
@@ -510,7 +529,7 @@ function scoreTable(state, winner) {
   const rows = state.players
     .map(
       (pl, i) =>
-        `<tr class="${i === winner ? 'is-winner' : ''}"><td>${pl.name}</td><td>${state.scores[i]}</td></tr>`,
+        `<tr class="${i === winner ? 'is-winner' : ''}"><td>${playerName(state, i)}</td><td>${state.scores[i]}</td></tr>`,
     )
     .join('');
   return `<table class="overlay__scores">${rows}</table>`;
@@ -528,34 +547,106 @@ export function hideOverlay() {
 export function showStartScreen() {
   showOverlay(`
     <h1 class="overlay__title">UNO<br><em>NEON ARCADE</em></h1>
-    <p class="overlay__sub">You vs Nova · Vex · Echo — first to 500</p>
-    <button class="cta" id="startBtn" type="button">DEAL ME IN</button>
+    <p class="overlay__sub">solo vs AI — or host a room for your friends</p>
+    <div class="lobby__form">
+      <input id="nameInput" class="lobby__input" maxlength="12" placeholder="YOUR NAME" autocomplete="off">
+    </div>
+    <div class="lobby__actions">
+      <button class="cta" id="soloBtn" type="button">SOLO VS AI</button>
+      <button class="cta cta--alt" id="hostBtn" type="button">HOST ROOM</button>
+    </div>
+    <div class="lobby__form lobby__form--join">
+      <input id="codeInput" class="lobby__input lobby__input--code" maxlength="5" placeholder="CODE" autocomplete="off">
+      <button class="cta cta--alt" id="joinBtn" type="button">JOIN ROOM</button>
+    </div>
+    <p class="lobby__error" id="lobbyError"></p>
   `);
-  dom.overlay.querySelector('#startBtn').addEventListener('click', handlers.onStart);
+  const name = () =>
+    (dom.overlay.querySelector('#nameInput').value.trim() || 'PLAYER').toUpperCase().slice(0, 12);
+  dom.overlay.querySelector('#soloBtn').addEventListener('click', () => handlers.onStart());
+  dom.overlay
+    .querySelector('#hostBtn')
+    .addEventListener('click', () => handlers.onHost(name()));
+  dom.overlay.querySelector('#joinBtn').addEventListener('click', () => {
+    const code = dom.overlay.querySelector('#codeInput').value.trim().toUpperCase();
+    if (code.length === 5) handlers.onJoin(code, name());
+    else lobbyError('room code is 5 characters');
+  });
+}
+
+export function lobbyError(msg) {
+  const el = dom.overlay.querySelector('#lobbyError');
+  if (el) el.textContent = msg;
+  else showFatal(msg);
+}
+
+export function showHostLobby(code, names, canStart) {
+  showOverlay(`
+    <h1 class="overlay__title">ROOM <em>${code}</em></h1>
+    <p class="overlay__sub">friends open the game and join with this code<br>empty seats are filled by AI</p>
+    <ul class="lobby__list">${names
+      .map((n, i) => `<li>${i + 1}. ${n}${i === 0 ? ' (host)' : ''}</li>`)
+      .join('')}</ul>
+    ${
+      canStart
+        ? '<button class="cta" id="lobbyStartBtn" type="button">START GAME</button>'
+        : '<p class="lobby__wait">waiting for at least one friend…</p>'
+    }
+  `);
+  dom.overlay
+    .querySelector('#lobbyStartBtn')
+    ?.addEventListener('click', () => handlers.onLobbyStart());
+}
+
+export function showGuestLobby(code, names) {
+  showOverlay(`
+    <h1 class="overlay__title">ROOM <em>${code}</em></h1>
+    <p class="overlay__sub">connected — waiting for the host to start</p>
+    <ul class="lobby__list">${names
+      .map((n, i) => `<li>${i + 1}. ${n}${i === 0 ? ' (host)' : ''}</li>`)
+      .join('')}</ul>
+  `);
+}
+
+export function showFatal(msg) {
+  showOverlay(`
+    <h1 class="overlay__title">DISCONNECTED</h1>
+    <p class="overlay__sub">${msg}</p>
+    <button class="cta" id="reloadBtn" type="button">BACK TO MENU</button>
+  `);
+  dom.overlay
+    .querySelector('#reloadBtn')
+    .addEventListener('click', () => window.location.reload());
 }
 
 function showRoundOver(ev, state) {
+  const cta = handlers.isDriver()
+    ? '<button class="cta" id="nextRoundBtn" type="button">NEXT ROUND</button>'
+    : '<p class="lobby__wait">waiting for the host…</p>';
   showOverlay(`
     <h1 class="overlay__title">${playerName(state, ev.winner)} <em>WINS THE ROUND</em></h1>
     <p class="overlay__sub">+${ev.points} points${ev.stalled ? ' · stalemate — lowest hand wins' : ''}</p>
     ${scoreTable(state, ev.winner)}
-    <button class="cta" id="nextRoundBtn" type="button">NEXT ROUND</button>
+    ${cta}
   `);
   dom.overlay
     .querySelector('#nextRoundBtn')
-    .addEventListener('click', handlers.onNextRound);
+    ?.addEventListener('click', handlers.onNextRound);
 }
 
 function showMatchOver(ev, state) {
+  const cta = handlers.isDriver()
+    ? '<button class="cta" id="newMatchBtn" type="button">PLAY AGAIN</button>'
+    : '<p class="lobby__wait">waiting for the host…</p>';
   showOverlay(`
     <h1 class="overlay__title">${playerName(state, ev.winner)} <em>WINS THE MATCH</em></h1>
     <p class="overlay__sub">first to 500 — final standings</p>
     ${scoreTable(state, ev.winner)}
-    <button class="cta" id="newMatchBtn" type="button">PLAY AGAIN</button>
+    ${cta}
   `);
   dom.overlay
     .querySelector('#newMatchBtn')
-    .addEventListener('click', handlers.onNewMatch);
+    ?.addEventListener('click', handlers.onNewMatch);
 }
 
 // -------------------------------------------------------------------- init
@@ -594,10 +685,10 @@ export function init(h) {
     if (dom.drawPile.classList.contains('is-clickable')) handlers.onDraw();
   });
 
-  dom.unoBtn.addEventListener('click', handlers.onUno);
-  dom.catchBtn.addEventListener('click', handlers.onCatch);
-  document.getElementById('playDrawnBtn').addEventListener('click', handlers.onPlayDrawn);
-  document.getElementById('keepDrawnBtn').addEventListener('click', handlers.onKeepDrawn);
+  dom.unoBtn.addEventListener('click', () => handlers.onUno());
+  dom.catchBtn.addEventListener('click', () => handlers.onCatch());
+  document.getElementById('playDrawnBtn').addEventListener('click', () => handlers.onPlayDrawn());
+  document.getElementById('keepDrawnBtn').addEventListener('click', () => handlers.onKeepDrawn());
 
   dom.picker.querySelectorAll('button[data-color]').forEach((btn) => {
     btn.addEventListener('click', () => handlers.onChooseColor(btn.dataset.color));
